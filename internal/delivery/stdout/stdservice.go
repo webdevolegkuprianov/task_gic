@@ -10,7 +10,7 @@ type stdService struct {
 	ch  chan int
 }
 
-func RegisterRestService(ctx context.Context, ch chan int) {
+func RegisterStdService(ctx context.Context, ch chan int) {
 
 	serv := &stdService{
 		ctx: ctx,

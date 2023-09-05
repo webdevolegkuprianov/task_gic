@@ -48,7 +48,7 @@ func main() {
 			envCnf.Port,
 		)
 
-		stdservice.RegisterRestService(
+		stdservice.RegisterStdService(
 			ctx,
 			chCounter,
 		)
