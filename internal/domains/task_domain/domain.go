@@ -8,13 +8,13 @@ type Domain struct {
 	}
 }
 
-func NewDomain(filePath string) *Domain {
+func NewDomain(filePath string, ch chan int) *Domain {
 
 	return &Domain{
 		dao: struct {
 			task iDao
 		}{
-			task: newDao(filePath),
+			task: newDao(filePath, ch),
 		},
 	}
 

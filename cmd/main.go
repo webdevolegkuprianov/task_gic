@@ -9,17 +9,20 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	restapi "task/internal/delivery"
+
+	"task/internal/delivery/restapi"
+	stdservice "task/internal/delivery/stdout"
 	"task/internal/domains/task_domain"
 	"task/internal/view"
 	"task/pkg/configs"
 )
 
 var (
-	l      *log.Logger  = log.Default()
-	once   *sync.Once   = new(sync.Once)
-	server *http.Server = &http.Server{}
-	envCnf *configs.Config
+	l         *log.Logger  = log.Default()
+	once      *sync.Once   = new(sync.Once)
+	server    *http.Server = &http.Server{}
+	envCnf    *configs.Config
+	chCounter chan (int) = make(chan int)
 )
 
 func main() {
@@ -39,10 +42,15 @@ func main() {
 		restapi.RegisterRestService(
 			ctx,
 			view.NewView(
-				task_domain.NewDomain(envCnf.FilePath),
+				task_domain.NewDomain(envCnf.FilePath, chCounter),
 			),
 			server,
 			envCnf.Port,
+		)
+
+		stdservice.RegisterRestService(
+			ctx,
+			chCounter,
 		)
 
 	})
@@ -53,10 +61,9 @@ func main() {
 	defer func() {
 
 		l.Println("отключаю все сервисы приложения")
-
 		signal.Stop(sigCh)
-
 		close(sigCh)
+		close(chCounter)
 
 	}()
 

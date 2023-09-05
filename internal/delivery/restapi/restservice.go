@@ -49,6 +49,8 @@ func (s *restService) initRouting() {
 
 	v1 := s.router.PathPrefix("/api/v1").Subrouter()
 
+	v1.Use(s.collection.ts.middelwareCounter)
+
 	{
 		tasks := v1.PathPrefix("/tasks").Subrouter()
 		tasks.HandleFunc("", s.collection.ts.handleGetTask()).Methods(http.MethodGet)

@@ -16,9 +16,10 @@ type dao struct {
 			mut          *sync.Mutex
 		}
 	}
+	chTask chan int
 }
 
-func newDao(filePath string) *dao {
+func newDao(filePath string, ch chan int) *dao {
 
 	var err error
 	var currentPath string
@@ -45,10 +46,26 @@ func newDao(filePath string) *dao {
 		}
 	}
 
-	_, err = os.ReadFile(path)
+	var dataBin []uint8
+	var valueCounter int
+
+	dataBin, err = os.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
+
+	if len(dataBin) == 0 {
+		dataBin = []uint8{48}
+	}
+
+	valueCounter, err = strconv.Atoi(string(dataBin))
+	if err != nil {
+		panic(err)
+	}
+
+	go func() {
+		ch <- valueCounter
+	}()
 
 	return &dao{
 		taskInfo: "task",
@@ -69,6 +86,7 @@ func newDao(filePath string) *dao {
 				mut:          new(sync.Mutex),
 			},
 		},
+		chTask: ch,
 	}
 }
 
@@ -99,7 +117,9 @@ func (dao *dao) updateTaskFile(ctx context.Context, value int) (err error) {
 		return
 	}
 
-	fileBinNew := []uint8(strconv.Itoa(valueCounter + value))
+	newValueCounter := valueCounter + value
+
+	fileBinNew := []uint8(strconv.Itoa(newValueCounter))
 
 	var f *os.File
 
@@ -114,6 +134,8 @@ func (dao *dao) updateTaskFile(ctx context.Context, value int) (err error) {
 	if err != nil {
 		return
 	}
+
+	dao.chTask <- newValueCounter
 
 	return
 
