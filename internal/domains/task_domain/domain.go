@@ -8,13 +8,13 @@ type Domain struct {
 	}
 }
 
-func NewDomain() *Domain {
+func NewDomain(filePath string) *Domain {
 
 	return &Domain{
 		dao: struct {
 			task iDao
 		}{
-			task: newDao(),
+			task: newDao(filePath),
 		},
 	}
 
@@ -26,4 +26,13 @@ func (d *Domain) GetTaskInfo(ctx context.Context) string {
 	defer cancel()
 
 	return d.dao.task.getTaskInfo(context)
+}
+
+func (d *Domain) IncrementCounter(ctx context.Context) (err error) {
+
+	if err = d.dao.task.updateTaskFile(ctx, 1); err != nil {
+		return
+	}
+
+	return
 }

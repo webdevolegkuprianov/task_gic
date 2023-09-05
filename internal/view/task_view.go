@@ -20,3 +20,13 @@ func (view *TaskView) GetTaskInfo(ctx context.Context) (result *TaskInfo) {
 	return
 
 }
+
+func (view *TaskView) IncrementCounter(ctx context.Context) (err error) {
+
+	if err = view.dom.task.IncrementCounter(ctx); err != nil {
+		return
+	}
+
+	return
+
+}

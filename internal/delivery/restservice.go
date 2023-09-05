@@ -16,7 +16,7 @@ type restService struct {
 	router *mux.Router
 }
 
-func RegisterRestService(ctx context.Context, v *view.View, srv *http.Server) {
+func RegisterRestService(ctx context.Context, v *view.View, srv *http.Server, port string) {
 
 	if v == nil {
 		panic(fmt.Errorf("не инициализирован View"))
@@ -36,7 +36,7 @@ func RegisterRestService(ctx context.Context, v *view.View, srv *http.Server) {
 
 	rs.initRouting()
 
-	srv.Addr = ":10095"
+	srv.Addr = port
 	srv.Handler = rs
 
 }

@@ -12,12 +12,14 @@ import (
 	restapi "task/internal/delivery"
 	"task/internal/domains/task_domain"
 	"task/internal/view"
+	"task/pkg/configs"
 )
 
 var (
 	l      *log.Logger  = log.Default()
 	once   *sync.Once   = new(sync.Once)
 	server *http.Server = &http.Server{}
+	envCnf *configs.Config
 )
 
 func main() {
@@ -25,14 +27,22 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	var err error
+
+	envCnf, err = configs.NewConfig()
+	if err != nil {
+		l.Fatalf("envconfig fail, %s", err.Error())
+	}
+
 	once.Do(func() {
 
 		restapi.RegisterRestService(
 			ctx,
 			view.NewView(
-				task_domain.NewDomain(),
+				task_domain.NewDomain(envCnf.FilePath),
 			),
 			server,
+			envCnf.Port,
 		)
 
 	})
@@ -51,7 +61,7 @@ func main() {
 	}()
 
 	go func() {
-		l.Println("запускаю http server")
+		l.Printf("запускаю http server на порту %s\n", envCnf.Port)
 		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			l.Fatal("не могу запустить HTTP сервер", err)
 		}
