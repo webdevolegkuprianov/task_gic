@@ -68,7 +68,7 @@ func main() {
 	}()
 
 	go func() {
-		l.Printf("запускаю http server на порту %s\n", envCnf.Port)
+		//l.Printf("запускаю http server на порту %s\n", envCnf.Port)
 		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			l.Fatal("не могу запустить HTTP сервер", err)
 		}

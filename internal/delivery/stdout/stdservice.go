@@ -29,10 +29,9 @@ func (s *stdService) runStdout() {
 			if !ok {
 				return
 			}
-			fmt.Printf("кол-во запросов: %d\n", v)
+			fmt.Printf("\rкол-во запросов: %d", v)
 		case <-s.ctx.Done():
 			return
 		}
 	}
-
 }
