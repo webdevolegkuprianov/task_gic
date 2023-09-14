@@ -1,4 +1,4 @@
-package restapi
+package restapi_net_http
 
 import (
 	"context"
@@ -52,7 +52,7 @@ func (s *restService) initRouting() {
 	v1.Use(s.collection.ts.middelwareCounter)
 
 	{
-		tasks := v1.PathPrefix("/tasks").Subrouter()
+		tasks := v1.PathPrefix("/tasks_net_http").Subrouter()
 		tasks.HandleFunc("", s.collection.ts.handleGetTask()).Methods(http.MethodGet)
 	}
 

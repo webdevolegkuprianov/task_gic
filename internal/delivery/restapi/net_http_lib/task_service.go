@@ -1,4 +1,4 @@
-package restapi
+package restapi_net_http
 
 import (
 	"context"

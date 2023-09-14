@@ -10,19 +10,25 @@ import (
 	"sync"
 	"syscall"
 
-	"task/internal/delivery/restapi"
 	stdservice "task/internal/delivery/stdout"
 	"task/internal/domains/task_domain"
 	"task/internal/view"
 	"task/pkg/configs"
+
+	restapi_fasthttp "task/internal/delivery/restapi/fast_http_lib"
+	restapi_net_http "task/internal/delivery/restapi/net_http_lib"
+
+	"github.com/valyala/fasthttp"
+	"github.com/valyala/fasthttp/reuseport"
 )
 
 var (
-	l         *log.Logger  = log.Default()
-	once      *sync.Once   = new(sync.Once)
-	server    *http.Server = &http.Server{}
-	envCnf    *configs.Config
-	chCounter chan (int) = make(chan int)
+	l              *log.Logger      = log.Default()
+	once           *sync.Once       = new(sync.Once)
+	netHttpServer  *http.Server     = &http.Server{}
+	fastHttpServer *fasthttp.Server = &fasthttp.Server{}
+	envCnf         *configs.Config
+	chCounter      chan (int) = make(chan int)
 )
 
 func main() {
@@ -39,13 +45,22 @@ func main() {
 
 	once.Do(func() {
 
-		restapi.RegisterRestService(
+		restapi_net_http.RegisterRestService(
 			ctx,
 			view.NewView(
 				task_domain.NewDomain(envCnf.FilePath, chCounter),
 			),
-			server,
-			envCnf.Port,
+			netHttpServer,
+			envCnf.Port1,
+		)
+
+		restapi_fasthttp.RegisterRestService(
+			ctx,
+			view.NewView(
+				task_domain.NewDomain(envCnf.FilePath, chCounter),
+			),
+			fastHttpServer,
+			envCnf.Port2,
 		)
 
 		stdservice.RegisterStdService(
@@ -67,9 +82,19 @@ func main() {
 
 	}()
 
+	ws.ln, err = reuseport.Listen("tcp4", ws.Addr)
+	if err != nil {
+		return err
+	}
+
 	go func() {
-		//l.Printf("запускаю http server на порту %s\n", envCnf.Port)
-		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		if err := netHttpServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			l.Fatal("не могу запустить HTTP сервер", err)
+		}
+	}()
+
+	go func() {
+		if err := fastHttpServer.ListenAndServe(envCnf.Port2); !errors.Is(err, http.ErrServerClosed) {
 			l.Fatal("не могу запустить HTTP сервер", err)
 		}
 	}()
