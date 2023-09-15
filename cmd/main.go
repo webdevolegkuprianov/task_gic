@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
-	stdservice "task/internal/delivery/stdout"
 	"task/internal/domains/task_domain"
 	"task/internal/view"
 	"task/pkg/configs"
@@ -63,10 +63,12 @@ func main() {
 			envCnf.Port2,
 		)
 
-		stdservice.RegisterStdService(
-			ctx,
-			chCounter,
-		)
+		/*
+			stdservice.RegisterStdService(
+				ctx,
+				chCounter,
+			)
+		*/
 
 	})
 
@@ -82,9 +84,11 @@ func main() {
 
 	}()
 
-	ws.ln, err = reuseport.Listen("tcp4", ws.Addr)
+	var ln net.Listener
+
+	ln, err = reuseport.Listen("tcp4", envCnf.Port2)
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 
 	go func() {
@@ -94,7 +98,7 @@ func main() {
 	}()
 
 	go func() {
-		if err := fastHttpServer.ListenAndServe(envCnf.Port2); !errors.Is(err, http.ErrServerClosed) {
+		if err := fastHttpServer.Serve(ln); !errors.Is(err, http.ErrServerClosed) {
 			l.Fatal("не могу запустить HTTP сервер", err)
 		}
 	}()

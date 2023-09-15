@@ -49,11 +49,10 @@ func (s *restService) initRouting() {
 
 	v1 := s.router.PathPrefix("/api/v1").Subrouter()
 
-	v1.Use(s.collection.ts.middelwareCounter)
-
 	{
-		tasks := v1.PathPrefix("/tasks_net_http").Subrouter()
-		tasks.HandleFunc("", s.collection.ts.handleGetTask()).Methods(http.MethodGet)
+		tasks := v1.PathPrefix("/net_http").Subrouter()
+		tasks.Use(s.collection.ts.handleTest)
+		tasks.HandleFunc("", s.collection.ts.duration()).Methods(http.MethodPost)
 	}
 
 }

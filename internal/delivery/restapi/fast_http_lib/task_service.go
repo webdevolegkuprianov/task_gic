@@ -3,8 +3,8 @@ package restapi_fasthttp
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"task/internal/view"
+	"time"
 
 	"github.com/valyala/fasthttp"
 )
@@ -14,14 +14,16 @@ type taskServ struct {
 	v   *view.View
 }
 
-func (serv *taskServ) handleGetTask() func(ctx *fasthttp.RequestCtx) {
+func (serv *taskServ) handleGetTask(next func(ctxHttp *fasthttp.RequestCtx)) func(ctxHttp *fasthttp.RequestCtx) {
 
-	return func(ctxHttp *fasthttp.RequestCtx) {
+	fn := func(ctxHttp *fasthttp.RequestCtx) {
+
+		defer next(ctxHttp)
 
 		ctx, cancel := context.WithCancel(serv.ctx)
 		defer cancel()
 
-		result := serv.v.Views.Task.GetTaskInfo(ctx)
+		result := serv.v.Views.Task.GetTaskInfo(ctx, ctxHttp.Request.Body())
 
 		dataBin, _ := json.Marshal(result)
 
@@ -30,19 +32,26 @@ func (serv *taskServ) handleGetTask() func(ctx *fasthttp.RequestCtx) {
 
 	}
 
+	return fn
+
 }
 
-func (serv *taskServ) middelwareCounter(next http.Handler) http.Handler {
+func (serv *taskServ) duration() func(ctxHttp *fasthttp.RequestCtx) {
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(ctxHttp *fasthttp.RequestCtx) {
 
 		ctx, cancel := context.WithCancel(serv.ctx)
 		defer cancel()
 
-		serv.v.Views.Task.IncrementCounter(ctx)
+		startTime := ctxHttp.Time()
 
-		next.ServeHTTP(w, r)
+		endTime := time.Now()
 
-	})
+		if err := serv.v.Views.Task.SaveDuration(ctx, startTime, endTime); err != nil {
+			ctxHttp.SetStatusCode(500)
+			ctxHttp.SetBody([]uint8(err.Error()))
+		}
+
+	}
 
 }

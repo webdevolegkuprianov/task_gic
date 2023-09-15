@@ -2,8 +2,8 @@ package task_domain
 
 import (
 	"context"
+	"encoding/json"
 	"os"
-	"strconv"
 	"sync"
 )
 
@@ -46,29 +46,8 @@ func newDao(filePath string, ch chan int) *dao {
 		}
 	}
 
-	var dataBin []uint8
-	var valueCounter int
-
-	dataBin, err = os.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-
-	if len(dataBin) == 0 {
-		dataBin = []uint8{48}
-	}
-
-	valueCounter, err = strconv.Atoi(string(dataBin))
-	if err != nil {
-		panic(err)
-	}
-
-	go func() {
-		ch <- valueCounter
-	}()
-
 	return &dao{
-		taskInfo: "task",
+		taskInfo: data,
 		files: struct {
 			task struct {
 				relativePath string
@@ -90,36 +69,49 @@ func newDao(filePath string, ch chan int) *dao {
 	}
 }
 
-func (dao *dao) getTaskInfo(ctx context.Context) string {
+func (dao *dao) getTaskInfo(ctx context.Context, data []byte) string {
 	return dao.taskInfo
 }
 
-func (dao *dao) updateTaskFile(ctx context.Context, value int) (err error) {
+func (dao *dao) updateDurationFile(ctx context.Context, duration int64) (err error) {
 
 	dao.files.task.mut.Lock()
 
 	defer dao.files.task.mut.Unlock()
 
 	var fileBin []uint8
-	var valueCounter int
 
 	fileBin, err = os.ReadFile(dao.files.task.relativePath)
 	if err != nil {
 		return
 	}
 
+	var model *durationModel
+
 	if len(fileBin) == 0 {
-		fileBin = []uint8{48}
+
+		model = &durationModel{
+			Quantity: 1,
+			Duration: duration,
+		}
+
+	} else {
+
+		if err = json.Unmarshal(fileBin, &model); err != nil {
+			return
+		}
+
+		model.Duration += duration
+		model.Quantity++
+
 	}
 
-	valueCounter, err = strconv.Atoi(string(fileBin))
+	var fileBinNew []uint8
+
+	fileBinNew, err = json.Marshal(model)
 	if err != nil {
 		return
 	}
-
-	newValueCounter := valueCounter + value
-
-	fileBinNew := []uint8(strconv.Itoa(newValueCounter))
 
 	var f *os.File
 
@@ -134,8 +126,6 @@ func (dao *dao) updateTaskFile(ctx context.Context, value int) (err error) {
 	if err != nil {
 		return
 	}
-
-	dao.chTask <- newValueCounter
 
 	return
 

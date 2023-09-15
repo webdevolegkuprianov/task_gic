@@ -1,6 +1,9 @@
 package task_domain
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type Domain struct {
 	dao struct {
@@ -20,17 +23,19 @@ func NewDomain(filePath string, ch chan int) *Domain {
 
 }
 
-func (d *Domain) GetTaskInfo(ctx context.Context) string {
+func (d *Domain) GetTaskInfo(ctx context.Context, data []byte) string {
 
 	context, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	return d.dao.task.getTaskInfo(context)
+	return d.dao.task.getTaskInfo(context, data)
 }
 
-func (d *Domain) IncrementCounter(ctx context.Context) (err error) {
+func (d *Domain) SaveDuration(ctx context.Context, startQueryTime time.Time, endQueryTime time.Time) (err error) {
 
-	if err = d.dao.task.updateTaskFile(ctx, 1); err != nil {
+	duration := endQueryTime.UnixNano() - startQueryTime.UnixNano()
+
+	if err = d.dao.task.updateDurationFile(ctx, duration); err != nil {
 		return
 	}
 
